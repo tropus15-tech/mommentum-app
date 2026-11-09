@@ -1,0 +1,20 @@
+{
+  "source": "Parqet – Portfolio \"Trade Republic\"",
+  "asOf": "2026-11-09",
+  "currency": "EUR",
+  "parqet": {
+    "xirr": 10.11,
+    "ttwror": 8.72,
+    "realizedGainNet": 1294.42,
+    "fees": 158,
+    "since": "2025-11-10",
+    "soldHoldings": 28
+  },
+  "holdings": [
+    { "ticker": "VWCE.DE", "isin": "IE00BK5BQT80", "name": "Vanguard FTSE All-World", "short": "FTSE All-World", "shares": 170.683984, "purchaseValue": 25283.93 },
+    { "ticker": "XDEM.DE", "isin": "IE00BL25JP72", "name": "Xtrackers MSCI World Momentum", "short": "World Momentum", "shares": 111.459015, "purchaseValue": 9475.03 },
+    { "ticker": "XDWT.DE", "isin": "IE00BM67HT60", "name": "Xtrackers MSCI World Information Technology", "short": "World IT", "shares": 65.016119, "purchaseValue": 8127.87 },
+    { "ticker": "XNAS.DE", "isin": "IE00BMFKG444", "name": "Xtrackers Nasdaq 100", "short": "Nasdaq 100", "shares": 73.441015, "purchaseValue": 4422.09 },
+    { "ticker": "QDVE.DE", "isin": "IE00B3WJKG14", "name": "iShares S&P 500 Information Technology", "short": "S&P 500 IT", "shares": 2.245172, "purchaseValue": 100.0 }
+  ]
+}
