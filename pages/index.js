@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
   const [data, setData] = useState(null);
@@ -28,6 +29,9 @@ export default function Home() {
   return (
     <div style={{ padding: 30, fontFamily: "system-ui" }}>
       <h1>Momentum Rechner</h1>
+      <p>
+        <Link href="/levermann">Einzelaktien: Levermann-Screener →</Link>
+      </p>
 
       <h2>XDEM (Momentum)</h2>
       <p>Score: {xdem.score.toFixed(2)}</p>

@@ -6,7 +6,7 @@ function getMonthlyCloses(data) {
 
   for (let i = data.length - 1; i >= 0; i--) {
     const d = new Date(data[i].date);
-    const key = ${d.getFullYear()}-${d.getMonth()};
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
 
     if (key !== lastMonth) {
       monthly.push(data[i].close);

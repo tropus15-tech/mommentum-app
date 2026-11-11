@@ -1,6 +1,12 @@
 {
   "name": "momentum-app",
   "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test lib/levermann.test.mjs"
+  },
   "dependencies": {
     "next": "14.2.0",
     "react": "18.2.0",
