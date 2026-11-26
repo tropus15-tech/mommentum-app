@@ -2,10 +2,11 @@
 // Datenquelle: Yahoo Finance, tägliche Schlusskurse der kompletten Historie + aktueller Kurs
 //
 // ETFs per Widget-Parameter festlegen (Widget lange drücken → Bearbeiten → Parameter):
-//   VWCE.DE=All-World, XDEM.DE=Momentum, XDWT.DE=World IT
+//   VWCE.DE=FTSE All-World/All-World, XDEM.DE=World Momentum/Momentum
+//   Format: KÜRZEL=Langer Name/Kurzer Name (Kurzname fürs kleine Widget, optional)
 // Ohne Parameter werden die DEFAULTS unten genutzt.
 
-const DEFAULTS = "VWCE.DE=FTSE All-World, XDEM.DE=World Momentum, QDVE.DE=S&P 500 IT, XNAS.DE=Nasdaq 100, VDIV.DE=DM Dividend Leaders";
+const DEFAULTS = "VWCE.DE=FTSE All-World/All-World, XDEM.DE=World Momentum/Momentum, QDVE.DE=S&P 500 IT/S&P IT, XNAS.DE=Nasdaq 100/Nasdaq, VDIV.DE=DM Dividend Leaders/Dividende";
 const ATH_CACHE_HOURS = 12; // volle Historie nur alle 12h neu laden, dazwischen ATH laufend fortschreiben
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
@@ -15,8 +16,9 @@ if (!fm.fileExists(cacheDir)) fm.createDirectory(cacheDir);
 
 function parseList(s) {
   return s.split(/[,;\n]/).map(x => x.trim()).filter(Boolean).map(x => {
-    const [sym, name] = x.split("=").map(y => y.trim());
-    return { sym: sym.toUpperCase(), name: name || sym.toUpperCase() };
+    const [sym, names] = x.split("=").map(y => y.trim());
+    const [name, short] = (names || sym).split("/").map(y => y.trim());
+    return { sym: sym.toUpperCase(), name, short: short || name };
   });
 }
 
@@ -96,7 +98,7 @@ function ddBar(dd, w, h) {
 // --- Daten laden ---
 const list = parseList(args.widgetParameter || DEFAULTS);
 const fam = config.widgetFamily || "large";
-const maxRows = { small: 3, medium: 5, large: 8, extraLarge: 8 }[fam] || 5;
+const maxRows = { small: 5, medium: 5, large: 8, extraLarge: 8 }[fam] || 5;
 const data = await Promise.all(list.slice(0, maxRows).map(getETF));
 
 // --- Widget ---
@@ -107,7 +109,7 @@ bg.locations = [0, 1];
 w.backgroundGradient = bg;
 // Einheitliche Schriftgrößen je Widget-Größe: Name und Wert gleich groß, kein automatisches Verkleinern
 const S = {
-  small:      { pad: 12, head: 10, font: 13, gap: 6 },
+  small:      { pad: 12, head: 10, font: 13, gap: 0 },
   medium:     { pad: 12, head: 10, font: 14, gap: 0 },  // gap 0 = Zeilen gleichmäßig verteilen
   large:      { pad: 16, head: 11, font: 18, gap: 0 },
   extraLarge: { pad: 16, head: 11, font: 18, gap: 0 },
@@ -132,7 +134,7 @@ w.addSpacer(S.gap ? 8 : null);
 data.forEach((e, i) => {
   const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
 
-  const n = row.addText(e.name);
+  const n = row.addText(fam === "small" ? e.short : e.name);
   n.font = Font.semiboldSystemFont(S.font);
   n.textColor = Color.white(); n.lineLimit = 1;
 
