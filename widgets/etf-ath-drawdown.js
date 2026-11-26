@@ -6,7 +6,7 @@
 //   Format: KÜRZEL=Langer Name/Kurzer Name (Kurzname fürs kleine Widget, optional)
 // Ohne Parameter werden die DEFAULTS unten genutzt.
 
-const DEFAULTS = "VWCE.DE=FTSE All-World/All-World, XDEM.DE=World Momentum/Momentum, QDVE.DE=S&P 500 IT/S&P IT, XNAS.DE=Nasdaq 100/Nasdaq, VDIV.DE=DM Dividend Leaders/Dividende";
+const DEFAULTS = "VWCE.DE=FTSE All-World/All-World, SXR8.DE=S&P 500/S&P 500, XNAS.DE=Nasdaq 100/Nasdaq, QDVE.DE=S&P 500 IT/S&P IT, XDEM.DE=World Momentum/Momentum, VDIV.DE=DM Dividend Leaders/Dividende";
 const ATH_CACHE_HOURS = 12; // volle Historie nur alle 12h neu laden, dazwischen ATH laufend fortschreiben
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
@@ -98,7 +98,7 @@ function ddBar(dd, w, h) {
 // --- Daten laden ---
 const list = parseList(args.widgetParameter || DEFAULTS);
 const fam = config.widgetFamily || "large";
-const maxRows = { small: 5, medium: 5, large: 8, extraLarge: 8 }[fam] || 5;
+const maxRows = { small: 6, medium: 6, large: 8, extraLarge: 8 }[fam] || 6;
 const data = await Promise.all(list.slice(0, maxRows).map(getETF));
 
 // --- Widget ---
