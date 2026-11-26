@@ -108,14 +108,15 @@ bg.colors = [new Color("#1C1C1E"), new Color("#0B0B0C")];
 bg.locations = [0, 1];
 w.backgroundGradient = bg;
 // Einheitliche Schriftgrößen je Widget-Größe: Name und Wert gleich groß, kein automatisches Verkleinern
+// Bei 6 Zeilen muss alles in ~150 pt Höhe passen (kleinste iPhones) → kompakte Werte
 const S = {
-  small:      { pad: 12, head: 10, font: 13, gap: 0 },
-  medium:     { pad: 12, head: 10, font: 14, gap: 0 },  // gap 0 = Zeilen gleichmäßig verteilen
-  large:      { pad: 16, head: 11, font: 18, gap: 0 },
-  extraLarge: { pad: 16, head: 11, font: 18, gap: 0 },
-}[fam] || { pad: 12, head: 10, font: 14, gap: 0 };
+  small:      { pad: 10, head: 9,  font: 13 },
+  medium:     { pad: 10, head: 10, font: 13 },
+  large:      { pad: 16, head: 11, font: 18 },
+  extraLarge: { pad: 16, head: 11, font: 18 },
+}[fam] || { pad: 10, head: 10, font: 13 };
 
-w.setPadding(S.pad, S.pad + 2, S.pad, S.pad + 2);
+w.setPadding(S.pad, S.pad + 4, S.pad, S.pad + 4);
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 w.url = URLScheme.forRunningScript();
 
@@ -130,7 +131,7 @@ ft.font = Font.mediumSystemFont(S.head); ft.textColor = new Color("#636366");
 
 const nf = (x, d = 2) => x.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-w.addSpacer(S.gap ? 8 : null);
+w.addSpacer(null);
 data.forEach((e, i) => {
   const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
 
@@ -146,9 +147,8 @@ data.forEach((e, i) => {
   v.textColor = e.error ? Color.gray() : ddColor(e.dd);
   v.lineLimit = 1;
 
-  if (i < data.length - 1) w.addSpacer(S.gap || null);
+  w.addSpacer(null); // Zeilen gleichmäßig über die Höhe verteilen
 });
-w.addSpacer();
 
 if (config.runsInWidget) Script.setWidget(w);
 else await w.presentMedium();
