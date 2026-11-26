@@ -162,8 +162,8 @@ if (fam === "large" || fam === "extraLarge") {
     }
     t.addSpacer(5);
     if (!e.error) {
-      const img = t.addImage(sparkline([...e.closes.slice(0, -1), e.price], e.ath, cellW, 22, ddColor(e.dd)));
-      img.imageSize = new Size(cellW, 22);
+      const img = t.addImage(sparkline([...e.closes.slice(0, -1), e.price], e.ath, cellW, 30, ddColor(e.dd)));
+      img.imageSize = new Size(cellW, 30);
     }
   }
 

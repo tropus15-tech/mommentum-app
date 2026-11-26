@@ -49,8 +49,12 @@ w.setPadding(12, 12, 10, 12);
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 w.url = URLScheme.forRunningScript();
 
+// feste Spaltenbreite (kleines Widget ≈ 39 % der Bildschirmbreite), damit beide Spalten bündig sind
+const sw = Math.min(Device.screenSize().width, Device.screenSize().height);
+const cellW = Math.floor((sw * 0.39 - 24 - 6) / 2);
+
 function cell(parent, label, value, valueColor, sub, subColor) {
-  const c = parent.addStack(); c.layoutVertically();
+  const c = parent.addStack(); c.layoutVertically(); c.size = new Size(cellW, 0);
   const l = c.addText(label); l.font = Font.semiboldSystemFont(10); l.textColor = GREY; l.lineLimit = 1;
   const v = c.addText(value); v.font = Font.boldRoundedSystemFont(18); v.textColor = valueColor;
   v.lineLimit = 1; v.minimumScaleFactor = 0.7;
@@ -61,14 +65,15 @@ function cell(parent, label, value, valueColor, sub, subColor) {
 
 function row(a, b) {
   const r = w.addStack(); r.layoutHorizontally(); r.topAlignContent();
-  cell(r, ...a); r.addSpacer(); cell(r, ...b); r.addSpacer();
+  cell(r, ...a); r.addSpacer(6); cell(r, ...b); r.addSpacer();
 }
 
 const na = ["–", Color.gray(), "keine Daten", GREY];
 const hyC = hy ? hyClass(hy.value) : null;
 
 row(
-  ["EUR/USD", ...(fx ? [nf(fx.price, 4), WHITE, `${sign(fx.pct)}${nf(fx.pct, 2)}%`, fx.pct >= 0 ? GREEN : RED] : na)],
+  // Farben = Wirkung auf deine Euro-ETFs: fallender Euro (stärkerer Dollar) hebt ihren Wert → grün
+  ["EUR/USD", ...(fx ? [nf(fx.price, 4), WHITE, `${sign(fx.pct)}${nf(fx.pct, 2)}%`, fx.pct <= 0 ? GREEN : RED] : na)],
   // steigende Rendite = Belastung für Aktien → rot
   ["US 10 J.", ...(tnx ? [`${nf(tnx.price, 2)}%`, WHITE, `${sign(tnx.abs)}${Math.round(tnx.abs * 100)} bp`, tnx.abs <= 0 ? GREEN : RED] : na)]
 );
@@ -76,7 +81,8 @@ w.addSpacer(null);
 row(
   ["GOLD", ...(gold ? [`${nf(gold.price, 0)} $`, WHITE, `${sign(gold.pct)}${nf(gold.pct, 1)}%`, gold.pct >= 0 ? GREEN : RED] : na)],
   // steigender Spread = mehr Stress → rot
-  ["HY-SPREAD", ...(hy ? [`${nf(hy.value, 2)}%`, hyC[1], `${hyC[0]} · ${sign(hy.bp)}${hy.bp} bp`, hy.bp <= 0 ? GREEN : RED] : na)]
+  // Wertfarbe = Stufe (grün eng · gelb normal · orange erhöht · rot Stress)
+  ["SPREAD", ...(hy ? [`${nf(hy.value, 2)}%`, hyC[1], `${sign(hy.bp)}${hy.bp} bp`, hy.bp <= 0 ? GREEN : RED] : na)]
 );
 w.addSpacer(null);
 
