@@ -107,14 +107,13 @@ const bg = new LinearGradient();
 bg.colors = [new Color("#1C1C1E"), new Color("#0B0B0C")];
 bg.locations = [0, 1];
 w.backgroundGradient = bg;
-// Einheitliche Schriftgrößen je Widget-Größe: Name und Wert gleich groß, kein automatisches Verkleinern
-// Bei 6 Zeilen muss alles in ~150 pt Höhe passen (kleinste iPhones) → kompakte Werte
+// Klein: 6 Zeilen untereinander (Kurznamen). Mittel: Raster 2 Spalten × 3 Zeilen (Kurznamen).
 const S = {
-  small:      { pad: 10, head: 9,  font: 13 },
-  medium:     { pad: 10, head: 10, font: 13 },
+  small:      { pad: 8,  head: 9,  font: 12 },
+  medium:     { pad: 12, head: 10, font: 15 },
   large:      { pad: 16, head: 11, font: 18 },
   extraLarge: { pad: 16, head: 11, font: 18 },
-}[fam] || { pad: 10, head: 10, font: 13 };
+}[fam] || { pad: 12, head: 10, font: 15 };
 
 w.setPadding(S.pad, S.pad + 4, S.pad, S.pad + 4);
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
@@ -131,24 +130,46 @@ ft.font = Font.mediumSystemFont(S.head); ft.textColor = new Color("#636366");
 
 const nf = (x, d = 2) => x.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-w.addSpacer(null);
-data.forEach((e, i) => {
-  const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
+const ddText = e => e.error ? "–" : (e.dd > -0.005 ? "ATH" : nf(e.dd, 1) + "%");
 
-  const n = row.addText(fam === "small" ? e.short : e.name);
-  n.font = Font.semiboldSystemFont(S.font);
-  n.textColor = Color.white(); n.lineLimit = 1;
-
-  row.addSpacer(6);
-  row.addSpacer();
-
-  const v = row.addText(e.error ? "–" : `${e.dd > -0.005 ? "ATH" : nf(e.dd, 1) + "%"}`);
+// Eine Zelle: Name links, Wert rechts
+function addCell(parent, e, label, width) {
+  const c = parent.addStack(); c.layoutHorizontally(); c.centerAlignContent();
+  if (width) c.size = new Size(width, 0);
+  const n = c.addText(label);
+  n.font = Font.semiboldSystemFont(S.font); n.textColor = Color.white(); n.lineLimit = 1;
+  c.addSpacer(4); c.addSpacer();
+  const v = c.addText(ddText(e));
   v.font = Font.boldRoundedSystemFont(S.font);
-  v.textColor = e.error ? Color.gray() : ddColor(e.dd);
-  v.lineLimit = 1;
+  v.textColor = e.error ? Color.gray() : ddColor(e.dd); v.lineLimit = 1;
+  return c;
+}
 
-  w.addSpacer(null); // Zeilen gleichmäßig über die Höhe verteilen
-});
+w.addSpacer(null);
+if (fam === "medium") {
+  // feste Spaltenbreite, damit Trennlinie und Werte in allen Zeilen bündig sind
+  // (mittleres Widget ≈ 84,5 % der Bildschirmbreite)
+  const sw = Math.min(Device.screenSize().width, Device.screenSize().height);
+  const cellW = Math.floor((sw * 0.845 - 2 * (S.pad + 4) - 21) / 2);
+  // Lesereihenfolge: links → rechts, dann nächste Zeile
+  for (let r = 0; r < Math.ceil(data.length / 2); r++) {
+    const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
+    const l = data[r * 2], rr = data[r * 2 + 1];
+    addCell(row, l, l.short, cellW);
+    row.addSpacer(10);
+    const sep = row.addStack(); sep.size = new Size(1, S.font + 2);
+    sep.backgroundColor = new Color("#3A3A3C");
+    row.addSpacer(10);
+    if (rr) addCell(row, rr, rr.short, cellW);
+    row.addSpacer();
+    w.addSpacer(null);
+  }
+} else {
+  data.forEach(e => {
+    addCell(w, e, fam === "small" ? e.short : e.name);
+    w.addSpacer(null); // Zeilen gleichmäßig über die Höhe verteilen
+  });
+}
 
 if (config.runsInWidget) Script.setWidget(w);
 else await w.presentMedium();
