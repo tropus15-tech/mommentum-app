@@ -176,7 +176,7 @@ if (fam === "large" || fam === "extraLarge") {
   }
 
   const foot = w.addStack(); foot.layoutHorizontally();
-  const fl = foot.addText("Abstand zum Allzeithoch · Verlauf 6 Monate · - - - ATH");
+  const fl = foot.addText("Abstand zum ATH · Verlauf 6 Monate · - - ATH");
   fl.font = Font.systemFont(9); fl.textColor = DIM;
   foot.addSpacer();
   const fr = foot.addText(`Stand ${tf.string(new Date())}`);
