@@ -48,7 +48,7 @@ const w = new ListWidget();
 const bg = new LinearGradient();
 bg.colors = [new Color("#1C1C1E"), new Color("#0B0B0C")]; bg.locations = [0, 1];
 w.backgroundGradient = bg;
-w.setPadding(12, 12, 10, 12);
+w.setPadding(10, 12, 8, 12);
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 w.url = URLScheme.forRunningScript();
 
@@ -80,8 +80,8 @@ function cell(parent, label, value, valueColor, sub, subColor, series, lineColor
   const s = c.addText(sub); s.font = Font.mediumSystemFont(10); s.textColor = subColor; s.lineLimit = 1;
   s.minimumScaleFactor = 0.8;
   if (series) {
-    c.addSpacer(3);
-    const img = c.addImage(spark(series, cellW, 14, lineColor)); img.imageSize = new Size(cellW, 14);
+    c.addSpacer(2);
+    const img = c.addImage(spark(series, cellW, 10, lineColor)); img.imageSize = new Size(cellW, 10);
   }
   return c;
 }
