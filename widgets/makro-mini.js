@@ -103,7 +103,7 @@ row(
 );
 w.addSpacer(null);
 row(
-  ["GOLD (USD)", ...(gold ? [`${nf(gold.price, 0)}`, WHITE, `${sign(gold.pct)}${nf(gold.pct, 1)}%`, gold.pct >= 0 ? GREEN : RED, gold.series, LINE] : na)],
+  ["GOLD $", ...(gold ? [`${nf(gold.price, 0)}`, WHITE, `${sign(gold.pct)}${nf(gold.pct, 1)}%`, gold.pct >= 0 ? GREEN : RED, gold.series, LINE] : na)],
   // steigender Spread = mehr Stress → rot
   // Wertfarbe = Stufe (grün eng · gelb normal · orange erhöht · rot Stress)
   ["SPREAD", ...(hy ? [`${nf(hy.value, 2)}%`, hyC[1], `${sign(hy.bp)}${hy.bp} bp`, hy.bp <= 0 ? GREEN : RED, hy.series, hyC[1]] : na)]
