@@ -1,4 +1,5 @@
 // ETF Abstand zum Allzeithoch – Scriptable Widget (klein, mittel, groß)
+// Sortierung: am stärksten gefallener ETF zuerst, am wenigsten gefallener zuletzt
 // Datenquelle: Yahoo Finance, tägliche Schlusskurse der kompletten Historie + aktueller Kurs
 //
 // ETFs per Widget-Parameter festlegen (Widget lange drücken → Bearbeiten → Parameter):
@@ -57,16 +58,17 @@ async function getETF(item) {
     if (!c || Date.now() - c.fetched > ATH_CACHE_HOURS * 3600 * 1000) {
       try { c = await fetchFullATH(item.sym); writeCache(item.sym, c); } catch (e) { if (!c) throw e; }
     }
-    // aktueller Kurs (leichter Abruf)
-    const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.sym)}?range=1d&interval=5m`);
-    const m = j.chart.result[0].meta;
+    // aktueller Kurs + 3 Monate Tagesschlusskurse (für Tagesänderung und Verlaufslinie)
+    const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.sym)}?range=3mo&interval=1d`);
+    const res = j.chart.result[0], m = res.meta;
     const price = m.regularMarketPrice;
-    const prev = m.chartPreviousClose ?? m.previousClose;
-    const chg = prev ? (price / prev - 1) * 100 : null;
+    const closes = (res.indicators.quote[0].close || []).filter(x => x != null);
+    const prev = closes.length > 1 ? closes[closes.length - 2] : null;
+    const chg = m.regularMarketChangePercent ?? (prev ? (price / prev - 1) * 100 : null);
     // neues Hoch seit letztem Komplett-Abruf → fortschreiben
     if (price > c.ath) { c.ath = price; c.athTs = m.regularMarketTime; writeCache(item.sym, c); }
     const dd = (price / c.ath - 1) * 100;
-    return { ...item, price, chg, ath: c.ath, athDate: new Date(c.athTs * 1000), dd, cur: m.currency, time: new Date(m.regularMarketTime * 1000) };
+    return { ...item, price, chg, closes, ath: c.ath, athDate: new Date(c.athTs * 1000), dd, cur: m.currency, time: new Date(m.regularMarketTime * 1000) };
   } catch (e) {
     return { ...item, error: true };
   }
@@ -82,24 +84,28 @@ function ddColor(dd) {
   return new Color("#FF453A");
 }
 
-function ddBar(dd, w, h) {
+// Verlaufslinie (3 Monate), gleiche Optik wie im VIX-Widget
+function sparkline(values, w, h, color) {
   const d = new DrawContext();
   d.size = new Size(w, h); d.opaque = false; d.respectScreenScale = true;
-  d.setFillColor(new Color("#3A3A3C"));
-  const bg = new Path(); bg.addRoundedRect(new Rect(0, 0, w, h), h / 2, h / 2); d.addPath(bg); d.fillPath();
-  const frac = Math.min(1, Math.abs(Math.min(0, dd)) / 30); // Skala: 0 % bis −30 %
-  if (frac > 0) {
-    d.setFillColor(ddColor(dd));
-    const p = new Path(); p.addRoundedRect(new Rect(0, 0, Math.max(h, w * frac), h), h / 2, h / 2); d.addPath(p); d.fillPath();
-  }
+  if (!values || values.length < 2) return d.getImage();
+  const min = Math.min(...values), max = Math.max(...values), rng = max - min || 1;
+  const p = new Path();
+  values.forEach((v, i) => {
+    const pt = new Point(i / (values.length - 1) * w, h - 2 - (v - min) / rng * (h - 4));
+    i === 0 ? p.move(pt) : p.addLine(pt);
+  });
+  d.addPath(p); d.setStrokeColor(color); d.setLineWidth(2); d.strokePath();
   return d.getImage();
 }
 
 // --- Daten laden ---
 const list = parseList(args.widgetParameter || DEFAULTS);
-const fam = config.widgetFamily || "medium";
-const maxRows = { small: 6, medium: 6, large: 8, extraLarge: 8 }[fam] || 6;
+const fam = config.widgetFamily || "large";
+const maxRows = { small: 6, medium: 6, large: 6, extraLarge: 8 }[fam] || 6;
 const data = await Promise.all(list.slice(0, maxRows).map(getETF));
+// am stärksten gefallen zuerst; ETFs ohne Daten ans Ende
+data.sort((a, b) => (a.error ? 1 : 0) - (b.error ? 1 : 0) || a.dd - b.dd);
 
 // --- Widget ---
 const w = new ListWidget();
@@ -107,70 +113,109 @@ const bg = new LinearGradient();
 bg.colors = [new Color("#1C1C1E"), new Color("#0B0B0C")];
 bg.locations = [0, 1];
 w.backgroundGradient = bg;
-// Klein: 6 Zeilen untereinander (Kurznamen). Mittel: Raster 2 Spalten × 3 Zeilen (Kurznamen).
-const S = {
-  small:      { pad: 8,  head: 9,  font: 12 },
-  medium:     { pad: 12, head: 10, font: 15 },
-  large:      { pad: 16, head: 11, font: 18 },
-  extraLarge: { pad: 16, head: 11, font: 18 },
-}[fam] || { pad: 12, head: 10, font: 15 };
-
-w.setPadding(S.pad, S.pad + 4, S.pad, S.pad + 4);
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 w.url = URLScheme.forRunningScript();
 
-// Kopfzeile: Titel links, Uhrzeit rechts (spart die Fußzeile)
-const head = w.addStack(); head.centerAlignContent();
-const ht = head.addText(fam === "small" ? "VOM ATH" : "ABSTAND ZUM ALLZEITHOCH");
-ht.font = Font.semiboldSystemFont(S.head); ht.textColor = new Color("#8E8E93");
-head.addSpacer();
-const tf = new DateFormatter(); tf.useShortTimeStyle();
-const ft = head.addText(tf.string(new Date()));
-ft.font = Font.mediumSystemFont(S.head); ft.textColor = new Color("#636366");
-
+const GREY = new Color("#8E8E93"), DIM = new Color("#636366");
+const GREEN = new Color("#30D158"), RED = new Color("#FF453A");
 const nf = (x, d = 2) => x.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
-
 const ddText = e => e.error ? "–" : (e.dd > -0.005 ? "ATH" : nf(e.dd, 1) + "%");
+const tf = new DateFormatter(); tf.useShortTimeStyle();
+const dfShort = new DateFormatter(); dfShort.dateFormat = "dd.MM.yy";
 
-// Eine Zelle: Name links, Wert rechts
-function addCell(parent, e, label, width) {
-  const c = parent.addStack(); c.layoutHorizontally(); c.centerAlignContent();
-  if (width) c.size = new Size(width, 0);
-  const n = c.addText(label);
-  n.font = Font.semiboldSystemFont(S.font); n.textColor = Color.white(); n.lineLimit = 1;
-  c.addSpacer(4); c.addSpacer();
-  const v = c.addText(ddText(e));
-  v.font = Font.boldRoundedSystemFont(S.font);
-  v.textColor = e.error ? Color.gray() : ddColor(e.dd); v.lineLimit = 1;
-  return c;
-}
+// Breite des Widgets aus der Bildschirmbreite schätzen (mittel/groß ≈ 84,5 %)
+const sw = Math.min(Device.screenSize().width, Device.screenSize().height);
+const widgetW = sw * 0.845;
 
-w.addSpacer(null);
-if (fam === "medium") {
-  // feste Spaltenbreite, damit Trennlinie und Werte in allen Zeilen bündig sind
-  // (mittleres Widget ≈ 84,5 % der Bildschirmbreite)
-  const sw = Math.min(Device.screenSize().width, Device.screenSize().height);
-  const cellW = Math.floor((sw * 0.845 - 2 * (S.pad + 4) - 21) / 2);
-  // Lesereihenfolge: links → rechts, dann nächste Zeile
+if (fam === "large" || fam === "extraLarge") {
+  // ---------- GROSS: Kacheln 2 × 3 im Stil des VIX-Widgets ----------
+  w.setPadding(12, 14, 10, 14);
+  const colGap = 16;
+  const cellW = Math.floor((widgetW - 28 - colGap) / 2);
+
+  function tile(parent, e) {
+    const t = parent.addStack(); t.layoutVertically(); t.size = new Size(cellW, 0);
+    const l = t.addText(e.name.toUpperCase());
+    l.font = Font.semiboldSystemFont(11); l.textColor = GREY; l.lineLimit = 1; l.minimumScaleFactor = 0.8;
+    const v = t.addText(ddText(e));
+    v.font = Font.boldRoundedSystemFont(26); v.textColor = e.error ? Color.gray() : ddColor(e.dd);
+    v.lineLimit = 1;
+    const sub = t.addStack(); sub.layoutHorizontally();
+    if (e.error) {
+      const x = sub.addText("keine Daten"); x.font = Font.mediumSystemFont(11); x.textColor = GREY;
+    } else {
+      const c = sub.addText(`${e.chg >= 0 ? "+" : ""}${nf(e.chg, 1)}%`);
+      c.font = Font.mediumSystemFont(11); c.textColor = e.chg >= 0 ? GREEN : RED;
+      const a = sub.addText(` · ATH ${dfShort.string(e.athDate)}`);
+      a.font = Font.mediumSystemFont(11); a.textColor = GREY; a.lineLimit = 1;
+    }
+    t.addSpacer(5);
+    if (!e.error) {
+      const img = t.addImage(sparkline([...e.closes.slice(0, -1), e.price], cellW, 22, ddColor(e.dd)));
+      img.imageSize = new Size(cellW, 22);
+    }
+  }
+
   for (let r = 0; r < Math.ceil(data.length / 2); r++) {
-    const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
-    const l = data[r * 2], rr = data[r * 2 + 1];
-    addCell(row, l, l.short, cellW);
-    row.addSpacer(10);
-    const sep = row.addStack(); sep.size = new Size(1, S.font + 2);
-    sep.backgroundColor = new Color("#3A3A3C");
-    row.addSpacer(10);
-    if (rr) addCell(row, rr, rr.short, cellW);
+    const row = w.addStack(); row.layoutHorizontally(); row.topAlignContent();
+    tile(row, data[r * 2]);
+    row.addSpacer(colGap);
+    if (data[r * 2 + 1]) tile(row, data[r * 2 + 1]);
     row.addSpacer();
     w.addSpacer(null);
   }
+
+  const foot = w.addStack(); foot.layoutHorizontally();
+  const fl = foot.addText("Abstand zum Allzeithoch · Verlauf 3 Monate");
+  fl.font = Font.systemFont(9); fl.textColor = DIM;
+  foot.addSpacer();
+  const fr = foot.addText(`Stand ${tf.string(new Date())}`);
+  fr.font = Font.systemFont(9); fr.textColor = DIM;
+
 } else {
-  data.forEach(e => {
-    addCell(w, e, fam === "small" ? e.short : e.name);
-    w.addSpacer(null); // Zeilen gleichmäßig über die Höhe verteilen
-  });
+  // ---------- KLEIN & MITTEL: kompakte Liste bzw. Raster ----------
+  const S = fam === "small" ? { pad: 8, head: 9, font: 12 } : { pad: 12, head: 10, font: 15 };
+  w.setPadding(S.pad, S.pad + 4, S.pad, S.pad + 4);
+
+  const head = w.addStack(); head.centerAlignContent();
+  const ht = head.addText(fam === "small" ? "VOM ATH" : "ABSTAND ZUM ALLZEITHOCH");
+  ht.font = Font.semiboldSystemFont(S.head); ht.textColor = GREY;
+  head.addSpacer();
+  const ft = head.addText(tf.string(new Date()));
+  ft.font = Font.mediumSystemFont(S.head); ft.textColor = DIM;
+
+  function addCell(parent, e, label, width) {
+    const c = parent.addStack(); c.layoutHorizontally(); c.centerAlignContent();
+    if (width) c.size = new Size(width, 0);
+    const n = c.addText(label);
+    n.font = Font.semiboldSystemFont(S.font); n.textColor = Color.white(); n.lineLimit = 1;
+    c.addSpacer(4); c.addSpacer();
+    const v = c.addText(ddText(e));
+    v.font = Font.boldRoundedSystemFont(S.font);
+    v.textColor = e.error ? Color.gray() : ddColor(e.dd); v.lineLimit = 1;
+  }
+
+  w.addSpacer(null);
+  if (fam === "medium") {
+    // Raster 2 × 3, gelesen links → rechts, dann nächste Zeile
+    const cellW = Math.floor((widgetW - 2 * (S.pad + 4) - 21) / 2);
+    for (let r = 0; r < Math.ceil(data.length / 2); r++) {
+      const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
+      const l = data[r * 2], rr = data[r * 2 + 1];
+      addCell(row, l, l.short, cellW);
+      row.addSpacer(10);
+      const sep = row.addStack(); sep.size = new Size(1, S.font + 2);
+      sep.backgroundColor = new Color("#3A3A3C");
+      row.addSpacer(10);
+      if (rr) addCell(row, rr, rr.short, cellW);
+      row.addSpacer();
+      w.addSpacer(null);
+    }
+  } else {
+    data.forEach(e => { addCell(w, e, e.short); w.addSpacer(null); });
+  }
 }
 
 if (config.runsInWidget) Script.setWidget(w);
-else await w.presentMedium();
+else await w.presentLarge();
 Script.complete();
