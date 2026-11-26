@@ -90,7 +90,8 @@ function sparkline(values, ath, w, h, color) {
   const d = new DrawContext();
   d.size = new Size(w, h); d.opaque = false; d.respectScreenScale = true;
   if (!values || values.length < 2) return d.getImage();
-  const max = Math.max(ath, ...values), min = Math.min(...values), rng = max - min || 1;
+  // feste Skala für alle Kacheln: oben ATH, unten −25 % (tiefer nur, falls der Kurs darunter liegt)
+  const max = Math.max(ath, ...values), min = Math.min(max * 0.75, ...values), rng = max - min || 1;
   const y = v => h - 2 - (v - min) / rng * (h - 4);
   // gestrichelte ATH-Linie
   d.setStrokeColor(new Color("#8E8E93", 0.6)); d.setLineWidth(1);
