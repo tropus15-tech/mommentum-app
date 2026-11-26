@@ -123,18 +123,9 @@ for (const e of data) {
   const left = row.addStack(); left.layoutVertically();
   const n = left.addText(e.name); n.font = Font.semiboldSystemFont(fam === "small" ? 12 : 13);
   n.textColor = Color.white(); n.lineLimit = 1; n.minimumScaleFactor = 0.7;
-  if (fam === "large" || fam === "extraLarge") {
-    const sub = left.addText(e.error ? `${e.sym} · keine Daten`
-      : `${nf(e.price)} ${e.cur === "EUR" ? "€" : e.cur} · ${e.chg >= 0 ? "+" : ""}${nf(e.chg, 1)}% · ATH ${df.string(e.athDate)}`);
-    sub.font = Font.systemFont(9); sub.textColor = new Color("#8E8E93"); sub.lineLimit = 1; sub.minimumScaleFactor = 0.7;
-  }
 
   row.addSpacer();
 
-  if (fam !== "small" && !e.error) {
-    const b = row.addImage(ddBar(e.dd, 50, 6)); b.imageSize = new Size(50, 6);
-    row.addSpacer(8);
-  }
   const v = row.addText(e.error ? "–" : `${e.dd > -0.005 ? "ATH" : nf(e.dd, 1) + "%"}`);
   v.font = Font.boldRoundedSystemFont(fam === "small" ? 14 : 16);
   v.textColor = e.error ? Color.gray() : ddColor(e.dd);
@@ -150,5 +141,5 @@ const ft = foot.addText(`Stand ${tf.string(new Date())}`);
 ft.font = Font.systemFont(9); ft.textColor = new Color("#636366");
 
 if (config.runsInWidget) Script.setWidget(w);
-else await w.presentLarge();
+else await w.presentMedium();
 Script.complete();
