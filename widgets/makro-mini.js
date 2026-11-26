@@ -54,7 +54,7 @@ w.url = URLScheme.forRunningScript();
 
 // feste Spaltenbreite (kleines Widget ≈ 39 % der Bildschirmbreite), damit beide Spalten bündig sind
 const sw = Math.min(Device.screenSize().width, Device.screenSize().height);
-const cellW = Math.floor((sw * 0.39 - 24 - 12) / 2);
+const cellW = Math.floor((sw * 0.39 - 24 - 8) / 2);
 
 // Mini-Verlaufslinie (1 Monat), wie beim VIX-Widget
 function spark(values, w, h, color) {
@@ -88,7 +88,7 @@ function cell(parent, label, value, valueColor, sub, subColor, series, lineColor
 
 function row(a, b) {
   const r = w.addStack(); r.layoutHorizontally(); r.topAlignContent();
-  cell(r, ...a); r.addSpacer(12); cell(r, ...b); r.addSpacer();
+  cell(r, ...a); r.addSpacer(8); cell(r, ...b); r.addSpacer();
 }
 
 const na = ["–", Color.gray(), "keine Daten", GREY, null, null];
