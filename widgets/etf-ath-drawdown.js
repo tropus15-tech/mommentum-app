@@ -97,7 +97,7 @@ function ddBar(dd, w, h) {
 
 // --- Daten laden ---
 const list = parseList(args.widgetParameter || DEFAULTS);
-const fam = config.widgetFamily || "large";
+const fam = config.widgetFamily || "medium";
 const maxRows = { small: 6, medium: 6, large: 8, extraLarge: 8 }[fam] || 6;
 const data = await Promise.all(list.slice(0, maxRows).map(getETF));
 
