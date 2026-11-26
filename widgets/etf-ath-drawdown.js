@@ -105,40 +105,48 @@ const bg = new LinearGradient();
 bg.colors = [new Color("#1C1C1E"), new Color("#0B0B0C")];
 bg.locations = [0, 1];
 w.backgroundGradient = bg;
-w.setPadding(12, 14, 10, 14);
+// Einheitliche Schriftgrößen je Widget-Größe: Name und Wert gleich groß, kein automatisches Verkleinern
+const S = {
+  small:      { pad: 12, head: 10, font: 13, gap: 6 },
+  medium:     { pad: 12, head: 10, font: 14, gap: 0 },  // gap 0 = Zeilen gleichmäßig verteilen
+  large:      { pad: 16, head: 11, font: 18, gap: 0 },
+  extraLarge: { pad: 16, head: 11, font: 18, gap: 0 },
+}[fam] || { pad: 12, head: 10, font: 14, gap: 0 };
+
+w.setPadding(S.pad, S.pad + 2, S.pad, S.pad + 2);
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 w.url = URLScheme.forRunningScript();
 
-const head = w.addStack();
+// Kopfzeile: Titel links, Uhrzeit rechts (spart die Fußzeile)
+const head = w.addStack(); head.centerAlignContent();
 const ht = head.addText(fam === "small" ? "VOM ATH" : "ABSTAND ZUM ALLZEITHOCH");
-ht.font = Font.semiboldSystemFont(11); ht.textColor = new Color("#8E8E93");
-w.addSpacer(fam === "large" ? 10 : 6);
+ht.font = Font.semiboldSystemFont(S.head); ht.textColor = new Color("#8E8E93");
+head.addSpacer();
+const tf = new DateFormatter(); tf.useShortTimeStyle();
+const ft = head.addText(tf.string(new Date()));
+ft.font = Font.mediumSystemFont(S.head); ft.textColor = new Color("#636366");
 
-const df = new DateFormatter(); df.dateFormat = "dd.MM.yy";
 const nf = (x, d = 2) => x.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-for (const e of data) {
+w.addSpacer(S.gap ? 8 : null);
+data.forEach((e, i) => {
   const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
 
-  const left = row.addStack(); left.layoutVertically();
-  const n = left.addText(e.name); n.font = Font.semiboldSystemFont(fam === "small" ? 12 : 13);
-  n.textColor = Color.white(); n.lineLimit = 1; n.minimumScaleFactor = 0.7;
+  const n = row.addText(e.name);
+  n.font = Font.semiboldSystemFont(S.font);
+  n.textColor = Color.white(); n.lineLimit = 1;
 
+  row.addSpacer(6);
   row.addSpacer();
 
   const v = row.addText(e.error ? "–" : `${e.dd > -0.005 ? "ATH" : nf(e.dd, 1) + "%"}`);
-  v.font = Font.boldRoundedSystemFont(fam === "small" ? 14 : 16);
+  v.font = Font.boldRoundedSystemFont(S.font);
   v.textColor = e.error ? Color.gray() : ddColor(e.dd);
-  v.rightAlignText();
+  v.lineLimit = 1;
 
-  w.addSpacer(fam === "large" ? 9 : 5);
-}
-
+  if (i < data.length - 1) w.addSpacer(S.gap || null);
+});
 w.addSpacer();
-const foot = w.addStack(); foot.addSpacer();
-const tf = new DateFormatter(); tf.useShortTimeStyle();
-const ft = foot.addText(`Stand ${tf.string(new Date())}`);
-ft.font = Font.systemFont(9); ft.textColor = new Color("#636366");
 
 if (config.runsInWidget) Script.setWidget(w);
 else await w.presentMedium();
