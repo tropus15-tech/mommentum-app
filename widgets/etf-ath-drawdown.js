@@ -2,10 +2,10 @@
 // Datenquelle: Yahoo Finance, tägliche Schlusskurse der kompletten Historie + aktueller Kurs
 //
 // ETFs per Widget-Parameter festlegen (Widget lange drücken → Bearbeiten → Parameter):
-//   EUNL.DE=World, SXR8.DE=S&P 500, SXRV.DE=Nasdaq, IS3N.DE=EM
+//   VWCE.DE=All-World, XDEM.DE=Momentum, XDWT.DE=World IT
 // Ohne Parameter werden die DEFAULTS unten genutzt.
 
-const DEFAULTS = "EUNL.DE=MSCI World, SXR8.DE=S&P 500, SXRV.DE=Nasdaq 100, IS3N.DE=EM IMI";
+const DEFAULTS = "VWCE.DE=FTSE All-World, XDEM.DE=World Momentum, QDVE.DE=S&P 500 IT, XNAS.DE=Nasdaq 100, VDIV.DE=DM Dividend Leaders";
 const ATH_CACHE_HOURS = 12; // volle Historie nur alle 12h neu laden, dazwischen ATH laufend fortschreiben
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
@@ -96,7 +96,7 @@ function ddBar(dd, w, h) {
 // --- Daten laden ---
 const list = parseList(args.widgetParameter || DEFAULTS);
 const fam = config.widgetFamily || "large";
-const maxRows = { small: 3, medium: 4, large: 8, extraLarge: 8 }[fam] || 4;
+const maxRows = { small: 3, medium: 5, large: 8, extraLarge: 8 }[fam] || 5;
 const data = await Promise.all(list.slice(0, maxRows).map(getETF));
 
 // --- Widget ---
@@ -123,7 +123,7 @@ for (const e of data) {
   const left = row.addStack(); left.layoutVertically();
   const n = left.addText(e.name); n.font = Font.semiboldSystemFont(fam === "small" ? 12 : 13);
   n.textColor = Color.white(); n.lineLimit = 1; n.minimumScaleFactor = 0.7;
-  if (fam !== "small") {
+  if (fam === "large" || fam === "extraLarge") {
     const sub = left.addText(e.error ? `${e.sym} · keine Daten`
       : `${nf(e.price)} ${e.cur === "EUR" ? "€" : e.cur} · ${e.chg >= 0 ? "+" : ""}${nf(e.chg, 1)}% · ATH ${df.string(e.athDate)}`);
     sub.font = Font.systemFont(9); sub.textColor = new Color("#8E8E93"); sub.lineLimit = 1; sub.minimumScaleFactor = 0.7;
