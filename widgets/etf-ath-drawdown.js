@@ -58,8 +58,8 @@ async function getETF(item) {
     if (!c || Date.now() - c.fetched > ATH_CACHE_HOURS * 3600 * 1000) {
       try { c = await fetchFullATH(item.sym); writeCache(item.sym, c); } catch (e) { if (!c) throw e; }
     }
-    // aktueller Kurs + 3 Monate Tagesschlusskurse (für Tagesänderung und Verlaufslinie)
-    const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.sym)}?range=3mo&interval=1d`);
+    // aktueller Kurs + 6 Monate Tagesschlusskurse (für Tagesänderung und Verlaufslinie)
+    const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.sym)}?range=6mo&interval=1d`);
     const res = j.chart.result[0], m = res.meta;
     const price = m.regularMarketPrice;
     const closes = (res.indicators.quote[0].close || []).filter(x => x != null);
@@ -84,15 +84,25 @@ function ddColor(dd) {
   return new Color("#FF453A");
 }
 
-// Verlaufslinie (3 Monate), gleiche Optik wie im VIX-Widget
-function sparkline(values, w, h, color) {
+// Verlaufslinie (6 Monate). Oberer Rand = Allzeithoch (gestrichelt), damit der Abstand
+// in jeder Kachel maßstabsgetreu sichtbar ist – auch wenn das ATH älter als 6 Monate ist.
+function sparkline(values, ath, w, h, color) {
   const d = new DrawContext();
   d.size = new Size(w, h); d.opaque = false; d.respectScreenScale = true;
   if (!values || values.length < 2) return d.getImage();
-  const min = Math.min(...values), max = Math.max(...values), rng = max - min || 1;
+  const max = Math.max(ath, ...values), min = Math.min(...values), rng = max - min || 1;
+  const y = v => h - 2 - (v - min) / rng * (h - 4);
+  // gestrichelte ATH-Linie
+  d.setStrokeColor(new Color("#8E8E93", 0.6)); d.setLineWidth(1);
+  const ya = y(max);
+  for (let x = 0; x < w; x += 6) {
+    const dash = new Path(); dash.move(new Point(x, ya)); dash.addLine(new Point(Math.min(x + 3, w), ya));
+    d.addPath(dash); d.strokePath();
+  }
+  // Kursverlauf
   const p = new Path();
   values.forEach((v, i) => {
-    const pt = new Point(i / (values.length - 1) * w, h - 2 - (v - min) / rng * (h - 4));
+    const pt = new Point(i / (values.length - 1) * w, y(v));
     i === 0 ? p.move(pt) : p.addLine(pt);
   });
   d.addPath(p); d.setStrokeColor(color); d.setLineWidth(2); d.strokePath();
@@ -151,7 +161,7 @@ if (fam === "large" || fam === "extraLarge") {
     }
     t.addSpacer(5);
     if (!e.error) {
-      const img = t.addImage(sparkline([...e.closes.slice(0, -1), e.price], cellW, 22, ddColor(e.dd)));
+      const img = t.addImage(sparkline([...e.closes.slice(0, -1), e.price], e.ath, cellW, 22, ddColor(e.dd)));
       img.imageSize = new Size(cellW, 22);
     }
   }
@@ -166,7 +176,7 @@ if (fam === "large" || fam === "extraLarge") {
   }
 
   const foot = w.addStack(); foot.layoutHorizontally();
-  const fl = foot.addText("Abstand zum Allzeithoch · Verlauf 3 Monate");
+  const fl = foot.addText("Abstand zum Allzeithoch · Verlauf 6 Monate · - - - ATH");
   fl.font = Font.systemFont(9); fl.textColor = DIM;
   foot.addSpacer();
   const fr = foot.addText(`Stand ${tf.string(new Date())}`);
